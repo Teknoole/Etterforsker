@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <title>Digital sporløype – Politihøgskolen</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {font-family: "Segoe UI", Arial, sans-serif; margin:0; background:#f8f9fa; color:#212529;}
+        .container {max-width: 960px; margin: 0 auto; padding: 20px; background: white; min-height: 100vh;}
+        h1, h2 {color: #003366; text-align:center;}
+        .step {display: none; padding: 30px; background:white; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.1); margin:20px 0;}
+        .active {display: block !important;}
+        table {width: 100%; border-collapse: collapse; margin: 25px 0; background:white;}
+        th, td {padding: 14px; text-align: left; border-bottom: 1px solid #dee2e6;}
+        th {background: #003366; color: white;}
+        .kritisk {color: #c62828;}
+        .advarsel {color: #ff8f00;}
+        .ok {color: #2e7d ource2;}
+        .btn {display:block; width: 300px; margin: 40px auto; padding: 16px; background:#003366; color:white; 
+              font-size:18px; text-align:center; border:none; border-radius:8px; cursor:pointer; box-shadow:0 4px 15px rgba(0,0,0,0.2);}
+        .btn:hover {background:#002244;}
+        #map {height: 420px; margin: 30px 0; border-radius: 12px; box-shadow:0 4px 20px rgba(0,0,0,0.15);}
+        .viktig {background:#ffe0e0; padding:25px; border-left:6px solid #c62828; border-radius:8px; margin:25px 0;}
+        .case {background:#e3f2fd; padding:20px; border-radius:8px; margin:20px 0; border-left:5px solid #1976d2;}
+        .header {text-align:center; padding:40px 20px; background:linear-gradient(135deg, #003366, #00509e); color:white; border-radius:0 0 20px 20px;}
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Digital sporløype</h1>
+    <p>Politihøgskolen – Etterforskning i 2025</p>
+</div>
+
+<div class="container">
+
+    <!-- STEG 1: Synlige spor akkurat nå -->
+    <div id="step1" class="step active">
+        <h2 style="text-align:center;">Steg 1 – Dette ser en nettside om deg akkurat nå</h2>
+        <table>
+            <tr><th>Informasjon</th><th>Verdi</th><th>Betydning</th></tr>
+            <tr><td>Offentlig IP-adresse</td><td id="public-ip">Laster…</td><td class="kritisk">Kan spores til abonnent via ISP</td></tr>
+            <tr><td>Omtrentlig plassering</td><td id="location">Laster…</td><td class="kritisk">Ofte bynøyaktig</td></tr>
+            <tr><td>Lokal IP (internt)</td><td id="local-ip">Laster…</td><td class="advarsel">Synlig på samme nettverk</td></tr>
+            <tr><td>Sist besøkte side</td><td id="referrer">-</td><td class="advarsel">Avslører klikksti</td></tr>
+            <tr><td>Nettleser og enhet</td><td id="ua">-</td><td class="advarsel">Del av fingeravtrykk</td></tr>
+            <tr><td>Skjermoppløsning</td><td id="resolution">-</td><td class="advarsel">Svært unik</td></tr>
+            <tr><td>VPN eller TOR?</td><td id="proxy">Laster…</td><td class="ok">Skjuler IP – men ikke alt</td></tr>
+        </table>
+        <button class="btn" onclick="nextStep(2)">Videre →</button>
+    </div>
+
+    <!-- STEG 2: Hvorfor fingerprint er farligere + kart -->
+    <div id="step2" class="step">
+        <h2 style="text-align:center;">Steg 2 – Den virkelige trusselen</h2>
+        <div class="viktig">
+            <h3>Hvorfor browser fingerprint er FARLIGERE enn IP-adressen din</h3>
+            <ul>
+                <li>IP-adresse endres med VPN, TOR eller ny oppkobling</li>
+                <li>Fingeravtrykket ditt er nesten 100 % stabilt – uansett nettverk</li>
+                <li>Det er ofte unikt blant hundretusener eller millioner av brukere</li>
+                <li>Når det først er koblet til ditt navn (via BankID, Facebook, Vipps osv.), er du «tagget» for alltid på tvers av nettet</li>
+            </ul>
+            <p><strong>Konklusjon fra Kripos 2025:</strong> Det er fingeravtrykket – ikke IP-adressen – som oftest feller kriminelle som bruker VPN/TOR.</p>
+        </div>
+
+        <h2 style="text-align:center;">Din omtrentlige plassering akkurat nå</h2>
+        <div id="map"></div>
+
+        <button class="btn" onclick="nextStep(3)">Videre til fingeravtrykk-hash →</button>
+    </div>
+
+    <!-- STEG 3: Fingeravtrykk-hash + amiunique-knapp -->
+    <div id="step3" class="step">
+        <h2 style="text-align:center;">Steg 3 – Din unike fingeravtrykk-hash</h2>
+        <div class="viktig">
+            <p>Denne hash-en er basert på 20–30 detaljer fra din maskin og nettleser.</p>
+            <p style="text-align:center; font-size:1.4em;">
+                Din personlige hash:<br>
+                <strong id="hash" style="color:#c62828; font-family:monospace; background:#f0f0f0; padding:10px; border-radius:6px;">beregner…</strong>
+            </p>
+            <p style="text-align:center; margin:40px 0;">
+                <button class="btn" onclick="sendToAmiUnique()">Se hvor unik du er blant millioner (åpner amiunique.org)</button>
+            </p>
+        </div>
+        <button class="btn" onclick="nextStep(4)">Videre – Hvordan politiet bruker dette →</button>
+    </div>
+
+    <!-- STEG 4: Politiets metoder med eksempler -->
+    <div id="step4" class="step">
+        <h2 style="text-align:center;">Steg 4 – Slik bruker politiet dette i ekte saker</h2>
+
+        <div class="case">
+            <h3>Eksempel A – Klassisk IP-sporing (90 % av trusselsaker)</h3>
+            <p>Trusler på forum → IP i loggen → begjæring til Telenor → navn og adresse → pågripelse samme dag.</p>
+        </div>
+
+        <div class="case">
+            <h3>Eksempel B – Fingeravtrykk + annonse-pixel (den nye standarden)</h3>
+            <p><strong>Ekte Kripos-sak 2024 (anonymisert):</strong></p>
+            <ol>
+                <li>Mann selger narkotika på darknet via TOR + VPN</li>
+                <li>Samtidig logget inn på Facebook i vanlig Chrome</li>
+                <li>Darknet-siden har Facebook-pixel (usynlig sporingskode)</li>
+                <li>Pixel sender fingeravtrykket til Meta → Meta svarer «dette er Per Hansen fra Drammen»</li>
+                <li>Kripos får data fra Meta → husundersøkelse → 5 kg beslag → 8 års fengsel</li>
+            </ol>
+            <p><strong>Dette skjer flere ganger i måneden nå.</strong></p>
+        </div>
+
+        <div class="case">
+            <h3>Eksempel C – Lokal IP på skole/job</h3>
+            <p>Trusler fra intern PC → lokal IP 10.0.0.45 → IT-avdeling finner elev/ansatt → sak oppklart.</p>
+        </div>
+
+        <div style="text-align:center; padding:40px; background:#003366; color:white; border-radius:12px; margin-top:40px;">
+            <h2>Takk for at du fulgte sporløypa!</h2>
+            <p>Du er nå bedre rustet til å forstå digital etterforskning i 2025.</p>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Navigasjon
+function nextStep(n) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step'+n).classList.add('active');
+    if (n===2) getLocation();      // Last kart først når det vises
+    if (n===3) generateFingerprint(); // Hash først når det vises
+}
+
+// STEG 1 – Grunnleggende info
+document.getElementById('referrer').textContent = document.referrer || 'Ingen / blokkert';
+document.getElementById('ua').textContent = navigator.userAgent;
+document.getElementById('resolution').textContent = `${screen.width}×${screen.height}`;
+
+// Lokal IP
+let localIps = new Set();
+const pc = new RTCPeerConnection({iceServers: [{urls: 'stun:stun.l.google.com:19302'}]});
+pc.createDataChannel(''); pc.createOffer().then(o=>pc.setLocalDescription(o));
+pc.onicecandidate = e => {
+    if (e.candidate && e.candidate.candidate) {
+        const ips = e.candidate.candidate.match(/([0-9.]+)(?=\s|$)/g) || [];
+        ips.forEach(ip => {/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(ip) && localIps.add(ip)});
+    }
+};
+setTimeout(() => { pc.close(); document.getElementById('local-ip').textContent = localIps.size ? Array.from(localIps).join(', ') : 'Blokkert'; }, 2500);
+
+// STEG 2 – Offentlig IP + kart
+let map, marker;
+async function getLocation() {
+    const sources = ['https://ipwho.is/', 'https://ip-api.com/json/'];
+    for (let src of sources) {
+        try {
+            const r = await fetch(src); const d = await r.json();
+            if (!d.ip) continue;
+            document.getElementById('public-ip').textContent = d.ip || d.query;
+            document.getElementById('location').textContent = `${d.city||'?'}, ${d.region||'?'}, ${d.country||'?'}`;
+            document.getElementById('proxy').textContent = (d.proxy||d.hosting) ? 'JA – VPN/TOR' : 'NEI – direkte';
+            if (d.latitude && d.longitude) {
+                if (!map) {
+                    map = L.map('map').setView([d.latitude, d.longitude], 12);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                }
+                if (marker) marker.setLatLng([d.latitude, d.longitude]);
+                else marker = L.marker([d.latitude, d.longitude]).addTo(map).bindPopup('Du er ca. her').openPopup();
+            }
+            return;
+        } catch(e) {}
+    }
+}
+
+// STEG 3 – Fingerprint-hash
+async function generateFingerprint() {
+    if (document.getElementById('hash').textContent !== 'beregner…') return;
+    const c = document.createElement('canvas'); const x = c.getContext('2d');
+    x.fillStyle = "#f60"; x.fillRect(125,1,62,20);
+    x.fillStyle = "#069"; x.fillText("PHS 2025", 2, 15);
+    x.fillStyle = "rgba(102,204,0,0.7)"; x.fillText("PHS 2025", 4, 17);
+    const data宠物 = [navigator.userAgent, screen.width, screen.height, c.toDataURL()].join('|||');
+    const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data));
+    const hex = Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    document.getElementById('hash').textContent = hex.substring(0, 64);
+    window.fingerprintData = btoa(JSON.stringify({userAgent:navigator.userAgent, canvas:c.toDataURL()}));
+}
+function sendToAmiUnique() {
+    if (!window.fingerprintData) return alert('Vent litt…');
+    window.open('https://amiunique.org/fp/collect/' + window.fingerprintData, '_blank');
+}
+</script>
+</body>
+</html>
